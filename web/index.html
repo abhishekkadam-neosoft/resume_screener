@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resume Screener (LLM)</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+  <header class="app-header">
+    <div class="container">
+      <h1>Resume Screener</h1>
+      <p class="subtitle">Upload resumes and paste a JD to get ranked results</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card grid">
+      <div class="col">
+        <h2>Resumes</h2>
+        <p class="muted">PDF or DOCX • up to 5 files</p>
+        <div id="dropzone" class="dropzone" tabindex="0">
+          <div class="dz-empty">
+            <div class="dz-icon">📄</div>
+            <div class="dz-text"><strong>Drag & drop</strong> files here</div>
+          </div>
+          <ul id="fileList" class="file-list"></ul>
+        </div>
+
+        <div class="toolbar">
+          <button id="pickBtn" class="btn ghost" type="button">Browse files</button>
+        </div>
+        <input id="files" type="file" multiple accept=".pdf,.docx" hidden />
+        <!-- <ul id="fileList" class="file-list"></ul> -->
+      </div>
+      <div class="col">
+        <h2>Job Description</h2>
+        <textarea id="jd" rows="12" placeholder="Paste the JD here..."></textarea>
+        <div class="actions">
+          <button id="runBtn" class="btn primary">Run Screening</button>
+          <button id="clearBtn" class="btn" type="button">Clear</button>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Results</h2>
+      <div class="table-wrap">
+        <table id="results" class="hidden">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Candidate</th>
+              <th>Score</th>
+              <th>Hard Pass</th>
+              <th>Status</th>
+              <th>Top Reasons</th>
+              <th>Manual Selection</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="actions" style="margin-top: 1rem;">
+    <button id="saveBtn" class="btn primary">💾 Save Selections</button>
+  </div>
+
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay hidden">
+    <div class="spinner"></div>
+    <div class="overlay-text">Processing…</div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <footer class="app-footer">
+    <div class="container">
+      <span class="muted">Built for internal screening workflows </span>
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+
+</html>
