@@ -238,8 +238,8 @@ async function saveSelections() {
       hard_filter_pass: row.querySelector("td:nth-child(4)")?.innerText === "Yes",
       explanation: row.querySelector("td:nth-child(5)")?.innerText,
       top_reasons: row.querySelector("td:nth-child(6)")?.innerText.split("|"),
-      manually_selected: row.querySelector(".manual-select")?.checked || false,
-      manual_reason: row.querySelector(".manual-reason")?.value || null
+      manually_selected: row.querySelector(".manual_selection")?.checked || false,
+      manual_reason: row.querySelector(".manual_reason")?.value || null
     };
     selections.push(selection);
   });
@@ -272,8 +272,8 @@ async function loadSelections() {
       <td>${sel.hard_filter_pass ? "Yes" : "No"}</td>
       <td>${sel.explanation ?? ""}</td>
       <td>${sel.top_reasons.join(" | ")}</td>
-      <td><input type="checkbox" class="manual-select" ${sel.manually_selected ? "checked" : ""}></td>
-      <td><input type="text" class="manual-reason" value="${sel.manual_reason ?? ""}"></td>
+      <td><input type="checkbox" class="manual_selection" ${sel.manually_selected ? "checked" : ""}></td>
+      <td><input type="text" class="manual_reason" value="${sel.manual_reason ?? ""}"></td>
     `;
     tbody.appendChild(tr);
   });
