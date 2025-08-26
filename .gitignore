@@ -64,3 +64,5 @@ resumes/*.docx
 *.rej
 
 venv
+
+CVs
