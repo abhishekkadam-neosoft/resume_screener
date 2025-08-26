@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+
+# Build
+build/
+dist/
+
+# Misc
+*.sqlite3
+*.db
+*.bak
+*.swp
+
+# Ignore output and temp
+standalone_output/
+*.out
+*.tmp
+
+# Ignore test artifacts
+test_db.py
+
+# Ignore package lock files
+package-lock.json
+yarn.lock
+
+# Ignore PDFs and DOCX resumes
+resumes/*.pdf
+resumes/*.docx
+
+# Ignore images
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Ignore compiled files
+*.so
+*.dll
+*.exe
+
+# Ignore backup files
+*~
+*.orig
+*.rej
+
+venv
