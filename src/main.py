@@ -197,40 +197,40 @@ def _truncate(text: str, max_chars: int = MAX_CHARS) -> str:
 
 ##################### Groq API #####################################
 
-def _client() -> Groq:
-	api_key = os.environ.get("GROQ_API_KEY")
-	if not api_key:
-		raise RuntimeError("GROQ_API_KEY not set")
-	return Groq(api_key=api_key)
+# def _client() -> Groq:
+# 	api_key = os.environ.get("GROQ_API_KEY")
+# 	if not api_key:
+# 		raise RuntimeError("GROQ_API_KEY not set")
+# 	return Groq(api_key=api_key)
 
-def chat_json(model: str, system: str, user: str) -> Dict[str, Any]:
-	client = _client()
-	resp = client.chat.completions.create(
-		model=model,
-		messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-		temperature=0.0,
-		max_tokens=2048,
-	)
-	content = resp.choices[0].message.content
-	if content.strip().startswith("```"):
-		content = content.strip().strip("`")
-		content = content.split("\n", 1)[-1]
-	return json.loads(content)
+# def chat_json(model: str, system: str, user: str) -> Dict[str, Any]:
+# 	client = _client()
+# 	resp = client.chat.completions.create(
+# 		model=model,
+# 		messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+# 		temperature=0.0,
+# 		max_tokens=2048,
+# 	)
+# 	content = resp.choices[0].message.content
+# 	if content.strip().startswith("```"):
+# 		content = content.strip().strip("`")
+# 		content = content.split("\n", 1)[-1]
+# 	return json.loads(content)
 
-def score_resume(model: str, jd_text: str, resume_text: str) -> Dict[str, Any]:
-	user = f"<JD>\n{jd_text}\n</JD>\n<RESUME>\n{resume_text}\n</RESUME>\n{PROMPT}"
-	try:
-		obj = chat_json(model=model, system=SYSTEM, user=user)
-		if "final_score" in obj:
-			return _ensure_schema(obj)
-	except Exception:
-		pass
-	user2 = f"<JD>\n{jd_text}\n</JD>\n<RESUME>\n{resume_text}\n</RESUME>\n{PROMPT}\n{STRICT_PROMPT}"
-	try:
-		obj2 = chat_json(model=model, system=SYSTEM, user=user2)
-		return _ensure_schema(obj2)
-	except Exception:
-		return _ensure_schema({"final_score": 0})
+# def score_resume(model: str, jd_text: str, resume_text: str) -> Dict[str, Any]:
+# 	user = f"<JD>\n{jd_text}\n</JD>\n<RESUME>\n{resume_text}\n</RESUME>\n{PROMPT}"
+# 	try:
+# 		obj = chat_json(model=model, system=SYSTEM, user=user)
+# 		if "final_score" in obj:
+# 			return _ensure_schema(obj)
+# 	except Exception:
+# 		pass
+# 	user2 = f"<JD>\n{jd_text}\n</JD>\n<RESUME>\n{resume_text}\n</RESUME>\n{PROMPT}\n{STRICT_PROMPT}"
+# 	try:
+# 		obj2 = chat_json(model=model, system=SYSTEM, user=user2)
+# 		return _ensure_schema(obj2)
+# 	except Exception:
+# 		return _ensure_schema({"final_score": 0})
 
 ##################################################################
 
@@ -288,6 +288,64 @@ def score_resume(model: str, jd_text: str, resume_text: str) -> Dict[str, Any]:
 #         return _ensure_schema({"final_score": 0})
 
 
+##################################################################
+
+############################### VLLM ################################
+
+from openai import OpenAI
+import re
+
+def extract_json(content: str) -> str:
+    # Try to capture JSON between curly braces
+    match = re.search(r"\{.*\}", content, re.DOTALL)
+    if match:
+        return match.group(0)
+    return content
+
+# Configure OpenAI client to talk to vLLM server
+vllm_client = OpenAI(api_key="EMPTY", base_url="http://localhost:8001/v1")
+
+def chat_json_vllm(system: str, user: str, model: str = "Qwen3-4B-Instruct-2507") -> dict:
+    resp = vllm_client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        temperature=0.0,
+        max_tokens=2048,
+    )
+    content = resp.choices[0].message.content.strip()
+
+    # ✅ Debug print
+    print("\n--- Raw model output ---")
+    print(content)
+
+    # Try to extract JSON
+    json_str = extract_json(content)
+    try:
+        return json.loads(json_str)
+    except Exception:
+        return {"final_score": 0, "raw_content": content}
+
+
+
+def score_resume(jd_text: str, resume_text: str, model: str = "Qwen3-4B-Instruct-2507") -> Dict[str, Any]:
+    user1 = f"<JD>\n{jd_text}\n</JD>\n<RESUME>\n{resume_text}\n</RESUME>\n{PROMPT}"
+    try:
+        obj = chat_json_vllm(SYSTEM, user1, model=model)
+        if "final_score" in obj:
+            return _ensure_schema(obj)
+    except Exception:
+        pass
+
+    # Retry with STRICT prompt
+    user2 = f"<JD>\n{jd_text}\n</JD>\n<RESUME>\n{resume_text}\n</RESUME>\n{PROMPT}\n{STRICT_PROMPT}"
+    try:
+        obj2 = chat_json_vllm(SYSTEM, user2, model=model)
+        return _ensure_schema(obj2)
+    except Exception:
+        return _ensure_schema({"final_score": 0})
 ##################################################################
 
 def _ensure_list_str(value: Any) -> List[str]:

@@ -1,10 +1,10 @@
 from huggingface_hub import snapshot_download
 
 # Replace this with the model you want
-MODEL_NAME = "Qwen/Qwen3-0.6B"
+MODEL_NAME = "Qwen/Qwen3-4B-Instruct-2507"
 
 # Folder where the model will be stored
-LOCAL_DIR = "./models/Qwen3-0.6B"
+LOCAL_DIR = "./models/Qwen3-4B-Instruct-2507"
 
 # Download the model
 print(f"Downloading {MODEL_NAME} to {LOCAL_DIR} ...")

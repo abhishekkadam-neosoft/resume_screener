@@ -22,7 +22,8 @@ from src.main import (
 )
 
 # Backend constants
-MODEL_NAME = "llama-3.3-70b-versatile" #when using groq api
+MODEL_NAME = "Qwen3-4B-Instruct-2507"
+# MODEL_NAME = "llama-3.3-70b-versatile" #when using groq api
 # MODEL_NAME = "deepseek-r1:8b" #when using ollama Deepseek-R1
 MAX_EXTRACT = 10
 MAX_SCORE = 10
@@ -78,7 +79,7 @@ async def screen(files: List[UploadFile] = File(...), jd_text: str = Form(...),p
         if preferred_skills.strip():
             jd_with_skills += f"\n\n[Preferred Skills / Tech Stacks]: {preferred_skills}"
     
-        rec = score_resume(MODEL_NAME, jd_with_skills, res_text)
+        rec = score_resume(jd_with_skills, res_text,MODEL_NAME)
 
         rec["file"] = fname
         rec["resume_text"] = res_text
@@ -111,8 +112,6 @@ async def screen(files: List[UploadFile] = File(...), jd_text: str = Form(...),p
 
     rows.sort(key=lambda r: r.get("final_score", 0), reverse=True)
     return JSONResponse(content=rows)
-
-
 
 
 @app.post("/api/save_selection")
