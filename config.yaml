@@ -1,0 +1,50 @@
+# Resume Screener Configuration
+
+# LLM Backend Selection
+llm_backend: groq  # Options: groq, ollama, vllm
+
+# Model Names
+models:
+  groq: llama-3.3-70b-versatile
+  ollama: llama3.2:latest
+  vllm: Qwen3-0.6B
+
+# vLLM Server Settings
+vllm:
+  host: localhost
+  port: 8001
+  base_url: http://localhost:8001/v1
+
+# Groq API Settings
+# (Set GROQ_API_KEY in .env)
+groq:
+  api_key_env: GROQ_API_KEY
+
+# Ollama Server Settings
+ollama:
+  host: localhost
+  port: 11434
+
+# Database Settings
+mysql:
+  host_env: DB_HOST
+  user_env: DB_USER
+  password_env: DB_PASS
+  database_env: DB_NAME
+
+# Extraction Settings
+ocr_lang: eng
+low_char_threshold: 200
+batch_size: 5
+limit: 5
+
+# Output Directories
+input_dir: resumes
+output_dir: standalone_output
+jd_file: jd/jd.txt
+
+# Frontend
+frontend_dir: web
+
+# Other
+max_chars: 20000
