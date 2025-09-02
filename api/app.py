@@ -6,6 +6,7 @@ import io
 import json
 import yaml
 import logging
+import asyncio
 import secrets
 from pathlib import Path
 from typing import List, Dict, Any
@@ -177,15 +178,7 @@ async def screen(
     jd_text: str = Form(...),
     preferred_skills: str = Form(""),
     user=Depends(auth_required),
-    # _=Depends(csrf_protect),
-) -> JSONResponse:
-    """
-    Process resumes:
-    - Extract text from PDF/DOCX
-    - Compare with Job Description (JD)
-    - Score resumes using LLM
-    - Save results to DB
-    """
+):
     logger.info(f"Received /api/screen request with {len(files)} files and JD length {len(jd_text)}")
 
     # Validate environment and inputs
@@ -196,50 +189,62 @@ async def screen(
     if not jd_text.strip():
         raise HTTPException(status_code=400, detail="JD text is required")
 
-    # Extract text from resumes
-    texts: List[Dict[str, Any]] = []
-    for f in files[:MAX_EXTRACT]:
-        name = f.filename or "resume"
-        data = await f.read()
+    jd_t = _truncate(jd_text)
+
+    ###############################################################
+    # ✅ 1. Extract text concurrently
+    ###############################################################
+    async def extract_text(file: UploadFile):
+        name = file.filename or "resume"
+        data = await file.read()
         try:
             if name.lower().endswith(".pdf"):
-                text = extract_pdf_text(data, ocr_on_demand=True, lang=OCR_LANG, low_char_threshold=LOW_CHAR_THRESHOLD)
+                text = await asyncio.to_thread(
+                    extract_pdf_text, data, True, OCR_LANG, LOW_CHAR_THRESHOLD
+                )
             elif name.lower().endswith(".docx"):
-                text = extract_docx_text(data)
+                text = await asyncio.to_thread(extract_docx_text, data)
             else:
-                continue
-            texts.append({"file": name, "text": text})
-        except Exception:
-            continue
+                return None
+            return {"file": name, "text": text}
+        except Exception as e:
+            logger.error(f"Error extracting {name}: {e}")
+            return None
+
+    extract_tasks = [extract_text(f) for f in files[:MAX_EXTRACT]]
+    texts = [t for t in await asyncio.gather(*extract_tasks) if t]
 
     if not texts:
         raise HTTPException(status_code=400, detail="No valid resumes extracted")
 
-    # Prepare for scoring
-    rows: List[Dict[str, Any]] = []
-    jd_t = _truncate(jd_text)
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    for item in texts[:MAX_SCORE]:
-        fname = item["file"]
-        res_text = _truncate(item["text"])
-
-        # Include preferred skills
+    ###############################################################
+    # ✅ 2. Score resumes concurrently
+    ###############################################################
+    async def score_resume_async(fname: str, res_text: str):
         jd_with_skills = jd_t
         if preferred_skills.strip():
             jd_with_skills += f"\n\n[Preferred Skills / Tech Stacks]: {preferred_skills}"
-
-        # Score resume
-        rec = score_resume(jd_with_skills, res_text)
+        rec = await asyncio.to_thread(score_resume, jd_with_skills, res_text)
         rec["file"] = fname
         rec["resume_text"] = res_text
 
-        # Validate and warn if model output is incomplete
         if rec.get("final_score", 0) == 0 or not rec.get("candidate_name"):
             rec["warning"] = "Model did not return valid output for this resume."
+        return rec
 
-        # Insert into DB
+    score_tasks = [
+        score_resume_async(item["file"], _truncate(item["text"]))
+        for item in texts[:MAX_SCORE]
+    ]
+    rows = await asyncio.gather(*score_tasks)
+
+    ###############################################################
+    # ✅ 3. Insert into DB
+    ###############################################################
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    for rec in rows:
         insert_query = """
             INSERT INTO screening_results
             (jd_text, preferred_skills, file_name, candidate_name, resume_text,
@@ -248,18 +253,16 @@ async def screen(
         """
         cursor.execute(insert_query, (
             jd_text, preferred_skills, rec["file"], rec.get("candidate_name"),
-            res_text, rec.get("final_score"), rec.get("hard_filter_pass"),
+            rec["resume_text"], rec.get("final_score"), rec.get("hard_filter_pass"),
             rec.get("explanation"), "|".join(rec.get("top_reasons", [])),
             "|".join(rec.get("risks", []))
         ))
         rec["id"] = cursor.lastrowid
-        rows.append(rec)
 
     conn.commit()
     cursor.close()
     conn.close()
 
-    # Sort by score
     rows.sort(key=lambda r: r.get("final_score", 0), reverse=True)
     return JSONResponse(content=rows)
 
