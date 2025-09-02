@@ -10,3 +10,5 @@ pytesseract
 python-dotenv
 python_docx
 vllm
+itsdangerous
+passlib[bcrypt]

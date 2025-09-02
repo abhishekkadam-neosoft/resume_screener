@@ -72,3 +72,6 @@ models
 test_vllm.py
 
 VLLM-serve.txt
+
+insert_admin_user.py
+config.yaml

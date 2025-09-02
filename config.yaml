@@ -1,13 +1,13 @@
 # Resume Screener Configuration
 
 # LLM Backend Selection
-llm_backend: groq  # Options: groq, ollama, vllm
+llm_backend: vllm  # Options: groq, ollama, vllm
 
 # Model Names
 models:
   groq: llama-3.3-70b-versatile
   ollama: llama3.2:latest
-  vllm: Qwen3-0.6B
+  vllm: Qwen3-4B-Instruct-2507
 
 # vLLM Server Settings
 vllm:
